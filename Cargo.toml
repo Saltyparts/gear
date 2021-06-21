@@ -1,0 +1,19 @@
+[package]
+name = "gear"
+version = "0.1.0"
+authors = ["Chay Nabors <chaynabors@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+bytemuck = { version = "1.7.0", features = ["derive"] }
+laminar = "0.5.0"
+log = "0.4.14"
+raw-window-handle = "0.3.3"
+rodio = "0.14.0"
+tobj = "3.0.1"
+wgpu = { git = "https://github.com/gfx-rs/wgpu-rs", branch = "master" }
+winit = "0.25.0"
+
+[dev-dependencies]
+env_logger = "0.8.4"
+tokio = { version = "1.7.0", features = ["macros", "rt"] }
