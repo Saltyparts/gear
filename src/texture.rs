@@ -1,11 +1,9 @@
 use std::path::Path;
 
-use crate::content::Loadable;
+pub struct Texture;
 
-pub struct Sound;
-
-impl Loadable for Sound {
+impl Texture {
     fn load<P: AsRef<Path>>(_path: P) -> Result<Self, ()> where Self: Sized {
-        Ok(Sound)
+        Ok(Texture)
     }
 }

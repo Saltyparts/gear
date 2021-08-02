@@ -1,16 +1,15 @@
-use std::time::{Duration, SystemTime};
+use std::time::{Duration, Instant};
 
 use log::info;
 use winit::{event::{Event as WinitEvent, WindowEvent as WinitWindowEvent}, event_loop::{ControlFlow, EventLoop}};
 
-use crate::audio::Audio;
+use crate::{audio::Audio, input::MouseEvent};
 use crate::input::{Input, InputEvent};
 use crate::network::{Network, NetworkEvent};
 use crate::renderer::Renderer;
 use crate::window::{Window, WindowEvent};
 
 pub enum Event {
-    Initialize,
     Update(Duration), // delta_time in nanoseconds
     Terminate,
     WindowEvent(WindowEvent),
@@ -47,10 +46,9 @@ impl Engine {
     }
 
     pub fn run<F: 'static + FnMut(&mut Engine, Event)>(mut self, mut event_handler: F) {
-        info!("Initializing game");
-        event_handler(&mut self, Event::Initialize);
+        let mut size = [0, 0];
 
-        let time = SystemTime::now();
+        let mut prev_now = Instant::now();
 
         let event_loop = self.event_loop.take().unwrap();
         event_loop.run(move |event, _, control_flow| {
@@ -60,17 +58,29 @@ impl Engine {
                 WinitEvent::WindowEvent { event, window_id: _ } => {
                     match event {
                         WinitWindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-                        WinitWindowEvent::Resized(size) => {
-                            let size = [size.width.max(1), size.height.max(1)];
+                        WinitWindowEvent::Resized(new_size) => {
+                            size = [new_size.width, new_size.height];
                             self.renderer.resize(size);
                             event_handler(&mut self, Event::WindowEvent(WindowEvent::Resized(size)));
                         },
                         WinitWindowEvent::KeyboardInput { input, .. } => event_handler(&mut self, Event::InputEvent(InputEvent::KeyboardEvent(input))),
+                        WinitWindowEvent::CursorMoved { position, .. } => {
+                            event_handler(&mut self, Event::InputEvent(InputEvent::MouseEvent(MouseEvent::CursorMoved([position.x - size[0] as f64 / 2., position.y - size[1] as f64 / 2.]))));
+                        },
+                        WinitWindowEvent::Destroyed => *control_flow = ControlFlow::Exit,
                         _ => (),
                     };
                 },
-                WinitEvent::MainEventsCleared => {
-                    event_handler(&mut self, Event::Update(time.elapsed().unwrap_or_default()));
+                WinitEvent::MainEventsCleared => self.window.request_redraw(),
+                WinitEvent::RedrawRequested(_) => {
+                    while let Some(event) = self.network.get_event() {
+                        event_handler(&mut self, Event::NetworkEvent(event));
+                    }
+
+                    let now = Instant::now();
+                    let delta_time = now - prev_now;
+                    prev_now = now;
+                    event_handler(&mut self, Event::Update(delta_time));
                 },
                 WinitEvent::LoopDestroyed => {
                     info!("Terminating game");
@@ -82,6 +92,6 @@ impl Engine {
     }
 
     pub fn terminate(&mut self) {
-        drop(&self.window);
+        self.window.close();
     }
 }

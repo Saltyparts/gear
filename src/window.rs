@@ -1,5 +1,5 @@
 use log::info;
-use winit::dpi::PhysicalSize;
+use winit::dpi::{PhysicalPosition, PhysicalSize};
 
 #[cfg(target_os = "windows")]
 use winit::platform::windows::WindowBuilderExtWindows;
@@ -9,7 +9,7 @@ pub enum WindowEvent {
 }
 
 pub struct Window {
-    window: winit::window::Window,
+    window: Option<winit::window::Window>,
 }
 
 impl Window {
@@ -17,33 +17,61 @@ impl Window {
         info!("Initializing windowing backend");
 
         Self {
-            window: create_window(event_loop),
+            window: Some(create_window(event_loop)),
         }
     }
 
     pub fn rename(&self, name: &str) -> &Self {
-        self.window.set_title(name);
+        if let Some(window) = &self.window {
+            window.set_title(name);
+        }
         self
     }
 
     pub fn resize(&self, size: [u32; 2]) -> &Self {
-        self.window.set_inner_size(PhysicalSize::new(size[0], size[1]));
+        if let Some(window) = &self.window {
+            window.set_inner_size(PhysicalSize::new(size[0], size[1]));
+        }
+        self
+    }
+
+    pub fn set_cursor_grab(&self, grab: bool) -> &Self {
+        if let Some(window) = &self.window {
+            window.set_cursor_grab(grab);
+        }
+        self
+    }
+
+    pub fn set_cursor_position(&self, position: [u32; 2]) -> &Self {
+        if let Some(window) = &self.window {
+            window.set_cursor_position(PhysicalPosition::new(position[0] as f64, position[1] as f64));
+        }
         self
     }
 
     pub fn request_redraw(&self) {
-        self.window.request_redraw();
+        if let Some(window) = &self.window {
+            window.request_redraw();
+        }
     }
 
     pub fn size(&self) -> [u32; 2] {
-        let size = self.window.inner_size();
-        [size.width, size.height]
+        if let Some(window) = &self.window {
+            let size = window.inner_size();
+            return [size.width, size.height]
+        }
+
+        [0, 0]
+    }
+
+    pub fn close(&mut self) {
+        self.window.take();
     }
 }
 
 unsafe impl raw_window_handle::HasRawWindowHandle for Window {
     fn raw_window_handle(&self) -> raw_window_handle::RawWindowHandle {
-        self.window.raw_window_handle()
+        self.window.as_ref().unwrap().raw_window_handle()
     }
 }
 

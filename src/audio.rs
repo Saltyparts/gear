@@ -1,7 +1,23 @@
 use log::info;
-pub use rodio::Sink as AudioSource;
-
 use rodio::{OutputStream, OutputStreamHandle};
+
+use crate::Sound;
+
+pub struct AudioSource {
+    pub(crate) sink: rodio::Sink,
+}
+
+impl AudioSource {
+    pub fn queue_sound(&self, sound: &Sound) -> &Self {
+        self.sink.append(sound.decoder());
+        self
+    }
+
+    pub fn set_volume(&self, volume: f32) -> &Self {
+        self.sink.set_volume(volume);
+        self
+    }
+}
 
 pub struct Audio {
     stream: OutputStream,
@@ -20,6 +36,8 @@ impl Audio {
     }
 
     pub fn create_audio_source(&self) -> AudioSource {
-        AudioSource::try_new(&self.stream_handle).unwrap()
+        AudioSource {
+            sink: rodio::Sink::try_new(&self.stream_handle).unwrap()
+        }
     }
 }

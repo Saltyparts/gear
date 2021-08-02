@@ -1,7 +1,8 @@
-use std::{borrow::Cow, ops::Range, rc::Rc, rc::Weak};
+use std::{borrow::Cow, ops::Range, sync::Weak};
 
-use bytemuck::{Pod, Zeroable};
+use bytemuck::Zeroable;
 use log::{error, info};
+use nalgebra::{Isometry, Isometry3, Matrix4, Perspective3, Point3, Translation, Translation3, UnitQuaternion, Vector3, zero};
 use wgpu::{
     Adapter,
     BIND_BUFFER_ALIGNMENT,
@@ -75,26 +76,21 @@ use wgpu::{
     TextureViewDescriptor,
     VertexBufferLayout,
     VertexState,
-    util::{BufferInitDescriptor, DeviceExt},
     vertex_attr_array
 };
 
-use crate::{content::model::Vertex};
-
-use super::window::Window;
+use crate::{model::Vertex, Window};
 
 const VERTEX_BUFFER_SIZE: u64 = 32000000;
 const INDEX_BUFFER_SIZE: u64 = 32000000;
-const MAX_LOCAL_COUNT: u64 = 1 << 20;
+const MAX_UNIFORM_COUNT: u64 = 1 << 20;
 const TEXTURE_FORMAT: TextureFormat = TextureFormat::Bgra8UnormSrgb;
 const DEPTH_TEXTURE_FORMAT: TextureFormat = TextureFormat::Depth32Float;
 
 #[repr(C, align(256))]
-#[derive(Clone, Copy, Zeroable)]
-struct Locals {
-    view_pos: [f32; 4],
-    view_proj: [[f32; 4]; 4],
-    position: [f32; 3],
+#[derive(Copy, Clone, Zeroable)]
+struct Uniforms {
+    mvp: [[f32; 4]; 4]
 }
 
 struct DrawCall {
@@ -113,9 +109,9 @@ pub struct Renderer {
     
     vertex_buffer: Buffer,
     index_buffer: Buffer,
-    local_buffer: Buffer,
-    local_bind_group_layout: BindGroupLayout,
-    local_bind_group: BindGroup,
+    uniform_buffer: Buffer,
+    uniform_bind_group_layout: BindGroupLayout,
+    uniform_bind_group: BindGroup,
 
     depth_texture: Texture,
     depth_texture_view: TextureView,
@@ -124,13 +120,13 @@ pub struct Renderer {
     pipeline: RenderPipeline,
 
     clear_color: [f64; 4],
-    view_pos: [f32; 4],
-    view_proj: [[f32; 4]; 4],
-    bound_texture: Option<Weak<crate::content::texture::Texture>>,
-    draw_calls: Vec<DrawCall>,
+    view: Isometry3<f32>,
+    projection: Matrix4<f32>,
+    bound_texture: Option<Weak<crate::Texture>>,
+    draw_calls: Vec<Vec<DrawCall>>,
     vertex_data: Vec<Vertex>,
     index_data: Vec<u32>,
-    local_data: Vec<Locals>,
+    uniform_data: Vec<Uniforms>,
 }
 
 impl Renderer {
@@ -185,14 +181,14 @@ impl Renderer {
             mapped_at_creation: false,
         });
 
-        let local_buffer = device.create_buffer(&BufferDescriptor {
-            label: Some("local_buffer"),
-            size: MAX_LOCAL_COUNT as BufferAddress * BIND_BUFFER_ALIGNMENT,
+        let uniform_buffer = device.create_buffer(&BufferDescriptor {
+            label: Some("uniform_buffer"),
+            size: MAX_UNIFORM_COUNT as BufferAddress * BIND_BUFFER_ALIGNMENT,
             usage: BufferUsage::UNIFORM | BufferUsage::COPY_DST,
             mapped_at_creation: false,
         });
 
-        let local_bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+        let uniform_bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
             label: None,
             entries: &[
                 BindGroupLayoutEntry {
@@ -201,22 +197,22 @@ impl Renderer {
                     ty: BindingType::Buffer {
                         ty: BufferBindingType::Uniform,
                         has_dynamic_offset: true,
-                        min_binding_size: wgpu::BufferSize::new(std::mem::size_of::<Locals>() as _),
+                        min_binding_size: wgpu::BufferSize::new(std::mem::size_of::<Uniforms>() as _),
                     },
                     count: None
                 },
             ]
         });
 
-        let local_bind_group = device.create_bind_group(&BindGroupDescriptor {
-            layout: &local_bind_group_layout,
+        let uniform_bind_group = device.create_bind_group(&BindGroupDescriptor {
+            layout: &uniform_bind_group_layout,
             entries: &[
                 BindGroupEntry {
                     binding: 0,
                     resource: BindingResource::Buffer(BufferBinding {
-                        buffer: &local_buffer,
+                        buffer: &uniform_buffer,
                         offset: 0,
-                        size: wgpu::BufferSize::new(std::mem::size_of::<Locals>() as _),
+                        size: wgpu::BufferSize::new(std::mem::size_of::<Uniforms>() as _),
                     },
                 )},
             ],
@@ -233,7 +229,7 @@ impl Renderer {
 
         let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
             label: None,
-            bind_group_layouts: &[&local_bind_group_layout],
+            bind_group_layouts: &[&uniform_bind_group_layout],
             push_constant_ranges: &[]
         });
 
@@ -265,7 +261,7 @@ impl Renderer {
             depth_stencil: Some(DepthStencilState {
                 format: DEPTH_TEXTURE_FORMAT,
                 depth_write_enabled: true,
-                depth_compare: CompareFunction::Less,
+                depth_compare: CompareFunction::GreaterEqual,
                 stencil: StencilState::default(),
                 bias: DepthBiasState::default(),
             }),
@@ -296,9 +292,9 @@ impl Renderer {
 
             vertex_buffer,
             index_buffer,
-            local_buffer,
-            local_bind_group_layout,
-            local_bind_group,
+            uniform_buffer,
+            uniform_bind_group_layout,
+            uniform_bind_group,
 
             depth_texture,
             depth_texture_view,
@@ -307,17 +303,12 @@ impl Renderer {
             pipeline,
 
             clear_color: [0., 0., 0., 1.],
-            view_pos: [0., 0., 0., 1.],
-            view_proj: [
-                [1., 0., 0., 0.],
-                [0., 1., 0., 0.],
-                [0., 0., 1., 0.],
-                [0., 0., 0., 1.],
-            ],
+            view: Isometry3::identity(),
+            projection: Matrix4::identity(),
             bound_texture: None,
             vertex_data: vec![],
             index_data: vec![],
-            local_data: vec![],
+            uniform_data: vec![],
             draw_calls: vec![],
         })
     }
@@ -337,35 +328,38 @@ impl Renderer {
         self
     }
 
-    pub fn set_view_position(&mut self, view_position: [f32; 3]) -> &mut Self {
-        self.view_pos = [view_position[0], view_position[1], view_position[2], 1.];
+    pub fn set_view(&mut self, view: Isometry3<f32>) -> &mut Self {
+        self.view = view;
         self
     }
 
-    pub fn set_view_projection(&mut self, view_projection: [[f32; 4]; 4]) -> &mut Self {
-        self.view_proj = view_projection;
+    pub fn set_projection(&mut self, projection: Matrix4<f32>) -> &mut Self {
+        self.projection = projection;
         self
     }
 
     pub fn bind_texture(&mut self, texture: &crate::Texture) -> &mut Self {
-        self.bound_texture = Some(Rc::downgrade(&texture.0));
         self
     }
 
-    pub fn draw_model(&mut self, model: &crate::Model, position: [f32; 3]) -> &mut Self {
+    pub fn draw_model(&mut self, model: &crate::Model, position: Point3<f32>, rotation: UnitQuaternion<f32>) -> &mut Self {
+        let mut draw_call = vec![];
         for mesh in &model.meshes {
-            self.draw_calls.push(DrawCall {
+            draw_call.push(DrawCall {
                 base_vertex: self.vertex_data.len() as i32,
                 indices: self.index_data.len() as u32..(self.index_data.len() + mesh.indices.len()) as u32,
             });
             self.vertex_data.extend(&mesh.vertices);
             self.index_data.extend(&mesh.indices);
         }
-        self.local_data.push(Locals {
-            view_pos: self.view_pos,
-            view_proj: self.view_proj, 
-            position,
+        self.draw_calls.push(draw_call);
+
+        let model = Translation3::from(position) * rotation;
+        let mvp = self.projection * (self.view * model).to_homogeneous();
+        self.uniform_data.push(Uniforms {
+            mvp: mvp.into(),
         });
+
         self
     }
 
@@ -388,10 +382,10 @@ impl Renderer {
 
         let vertex_data = bytemuck::cast_slice(&self.vertex_data);
         let index_data = bytemuck::cast_slice(&self.index_data);
-        let local_data = unsafe {
+        let uniform_data = unsafe {
             std::slice::from_raw_parts(
-                self.local_data.as_ptr() as *const u8,
-                self.local_data.len() * BIND_BUFFER_ALIGNMENT as usize,
+                self.uniform_data.as_ptr() as *const u8,
+                self.uniform_data.len() * BIND_BUFFER_ALIGNMENT as usize,
             )
         };
 
@@ -416,7 +410,7 @@ impl Renderer {
                 depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
                     view: &self.depth_texture_view,
                     depth_ops: Some(Operations {
-                        load: LoadOp::Clear(1.0),
+                        load: LoadOp::Clear(0.0),
                         store: true,
                     }),
                     stencil_ops: None,
@@ -429,20 +423,22 @@ impl Renderer {
                 render_pass.set_pipeline(&self.pipeline);
                 for i in 0..self.draw_calls.len() {
                     let offset = (i as DynamicOffset) * (BIND_BUFFER_ALIGNMENT as DynamicOffset);
-                    render_pass.set_bind_group(0, &self.local_bind_group, &[offset]);
-                    render_pass.draw_indexed(self.draw_calls[i].indices.clone(), self.draw_calls[i].base_vertex, 0..1);
+                    render_pass.set_bind_group(0, &self.uniform_bind_group, &[offset]);
+                    for k in 0..self.draw_calls[i].len() {
+                        render_pass.draw_indexed(self.draw_calls[i][k].indices.clone(), self.draw_calls[i][k].base_vertex, 0..1);
+                    }
                 }
             }
         }
 
         self.queue.write_buffer(&self.vertex_buffer, 0, vertex_data);
         self.queue.write_buffer(&self.index_buffer, 0, index_data);
-        self.queue.write_buffer(&self.local_buffer, 0, local_data);
+        self.queue.write_buffer(&self.uniform_buffer, 0, uniform_data);
         self.queue.submit(Some(encoder.finish()));
 
         self.vertex_data.clear();
         self.index_data.clear();
-        self.local_data.clear();
+        self.uniform_data.clear();
         self.draw_calls.clear();
     }
 }

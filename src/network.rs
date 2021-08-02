@@ -1,29 +1,93 @@
-use std::{fmt::Display, net::ToSocketAddrs, rc::{Rc, Weak}};
+use std::{net::{SocketAddr, ToSocketAddrs}, sync::{Arc, atomic::{AtomicBool, Ordering}}, thread::{self, JoinHandle, sleep}, time::{Duration, Instant}};
 
-use laminar::Socket;
-use log::info;
+pub use laminar::Packet;
+
+use crossbeam::channel::{Receiver, Sender, TryRecvError};
+use laminar::SocketEvent;
+
+use crate::Result;
 
 pub enum NetworkEvent {
-    Connected(Connection),
-    MessageReceived,
+    Message(Packet),
+    Connect(SocketAddr),
+    Timeout(SocketAddr),
+    Disconnect(SocketAddr),
 }
 
-pub struct Connection(Rc<Socket>);
+pub struct Socket {
+    sender: Sender<Packet>,
+    stop_signal: Arc<AtomicBool>,
+}
 
+impl Socket {
+    pub fn send(&self, packet: Packet) -> &Self {
+        self.sender.send(packet).unwrap();
+        self
+    }
+}
+
+impl Drop for Socket {
+    fn drop(&mut self) {
+        self.stop_signal.swap(true, Ordering::Relaxed);
+    }
+}
+
+#[derive(Default)]
 pub struct Network {
-    connections: Vec<Weak<Socket>>,
+    socket_thread: Option<JoinHandle<()>>,
+    receiver: Option<Receiver<SocketEvent>>,
 }
 
 impl Network {
     pub(crate) fn new() -> Self {
-        info!("Initializing network backend");
-
-        Self {
-            connections: vec![],
-        }
+        Network::default()
     }
 
-    pub fn bind<A: ToSocketAddrs + Display>(&self, address: A) {
-        info!("Binding to address: {}", address);
+    pub(crate) fn get_event(&mut self) -> Option<NetworkEvent> {
+        if let Some(receiver) = &self.receiver {
+            loop {
+                match receiver.try_recv() {
+                    Ok(message) => return Some(match message {
+                        SocketEvent::Packet(packet) => NetworkEvent::Message(packet),
+                        SocketEvent::Connect(address) => NetworkEvent::Connect(address),
+                        SocketEvent::Timeout(address) => NetworkEvent::Timeout(address),
+                        SocketEvent::Disconnect(address) => NetworkEvent::Disconnect(address),
+                    }),
+                    Err(e) => match e {
+                        TryRecvError::Empty => break,
+                        TryRecvError::Disconnected => {
+                            self.socket_thread.take().unwrap().join().unwrap();
+                            self.receiver.take();
+                            break;
+                        },
+                    },
+                }
+            }
+        }
+
+        None
+    }
+
+    pub fn bind<A: ToSocketAddrs>(&mut self, addresses: A) -> Result<Socket> {
+        let mut socket = laminar::Socket::bind(addresses)?;
+        let sender = socket.get_packet_sender();
+        let receiver = socket.get_event_receiver();
+        let stop_signal = Arc::new(AtomicBool::new(false));
+        let stop = stop_signal.clone();
+
+        let socket_thread = thread::spawn(move ||
+            while !stop.load(Ordering::Relaxed) {
+                socket.manual_poll(Instant::now());
+                sleep(Duration::from_millis(1));
+            }
+        );
+
+        self.socket_thread = Some(socket_thread);
+        self.receiver = Some(receiver);
+
+        Ok(Socket {
+            sender,
+            stop_signal,
+        })
     }
 }

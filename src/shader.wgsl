@@ -11,21 +11,19 @@ struct VertexOutput {
 };
 
 [[block]]
-struct Locals {
-    view_pos: vec4<f32>;
-    view_proj: mat4x4<f32>;
-    pos: vec3<f32>;
+struct Uniforms {
+    model_view_projection: mat4x4<f32>;
 };
 
 [[group(0), binding(0)]]
-var<uniform> locals: Locals;
+var<uniform> uniforms: Uniforms;
 
 [[stage(vertex)]]
 fn main(in: VertexInput) -> VertexOutput {
     var out: VertexOutput;
     out.tex_coord = in.tex_coord;
     out.normal = in.normal;
-    out.pos = locals.view_proj * vec4<f32>(in.pos + locals.pos, 1.0);
+    out.pos = uniforms.model_view_projection * vec4<f32>(in.pos, 1.0);
     return out;
 }
 

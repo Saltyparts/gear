@@ -3,9 +3,12 @@ use std::path::Path;
 
 use bytemuck::{Pod, Zeroable};
 use log::error;
+use tobj::LoadError;
 use tobj::LoadOptions;
 
-use crate::content::Loadable;
+use crate::Loadable;
+use crate::result::GearError;
+use crate::result::Result;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
@@ -26,18 +29,12 @@ pub struct Model {
 }
 
 impl Loadable for Model {
-    fn load<P: AsRef<Path>>(path: P) -> Result<Model, ()> {
-        let (models, _materials) = match tobj::load_obj(path.as_ref(), &LoadOptions {
+    fn load<P: AsRef<Path>>(path: P) -> Result<Model> {
+        let (models, _materials) = tobj::load_obj(path.as_ref(), &LoadOptions {
             triangulate: true,
             single_index: true,
             ..Default::default()
-        }) {
-            Ok(mm) => mm,
-            Err(e) => {
-                error!("Failed to load model: {}", e);
-                return Err(()); // TODO, return correct err
-            }
-        };
+        })?;
 
         let mut meshes = vec![];
         for model in models {
