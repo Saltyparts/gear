@@ -19,11 +19,12 @@ impl From<LoadError> for GearError {
             LoadError::NormalParseError |
             LoadError::TexcoordParseError |
             LoadError::FaceParseError |
-            LoadError::MaterialParseError => GearError::ParseFileFailed,
+            LoadError::MaterialParseError |
             LoadError::InvalidObjectName |
             LoadError::FaceVertexOutOfBounds |
             LoadError::FaceTexCoordOutOfBounds |
             LoadError::FaceNormalOutOfBounds |
+            LoadError::FaceColorOutOfBounds => GearError::ParseFileFailed,
             LoadError::InvalidLoadOptionConfig |
             LoadError::GenericFailure => GearError::Unknown,
         }
