@@ -19,6 +19,7 @@ pub use input::KeyState;
 pub use loadable::Loadable;
 pub use model::Model;
 pub use network::Network;
+pub use network::NetworkConfig;
 pub use network::Packet;
 pub use network::Socket;
 pub use renderer::Renderer;

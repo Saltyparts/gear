@@ -1,6 +1,6 @@
 use std::{net::{SocketAddr, ToSocketAddrs}, sync::{Arc, atomic::{AtomicBool, Ordering}}, thread::{self, JoinHandle, sleep}, time::{Duration, Instant}};
 
-pub use laminar::Packet;
+pub use laminar::{Config as NetworkConfig, Packet};
 
 use crossbeam::channel::{Receiver, Sender, TryRecvError};
 use laminar::SocketEvent;
@@ -69,7 +69,11 @@ impl Network {
     }
 
     pub fn bind<A: ToSocketAddrs>(&mut self, addresses: A) -> Result<Socket> {
-        let mut socket = laminar::Socket::bind(addresses)?;
+        self.bind_with_config(addresses, NetworkConfig::default())
+    }
+
+    pub fn bind_with_config<A: ToSocketAddrs>(&mut self, addresses: A, config: NetworkConfig) -> Result<Socket> {
+        let mut socket = laminar::Socket::bind_with_config(addresses, config)?;
         let sender = socket.get_packet_sender();
         let receiver = socket.get_event_receiver();
         let stop_signal = Arc::new(AtomicBool::new(false));
