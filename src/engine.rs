@@ -11,8 +11,8 @@ use crate::window::{Window, WindowEvent};
 
 #[derive(Clone, Debug)]
 pub enum Event {
-    Update(Duration), // delta_time in nanoseconds
-    Terminate,
+    UpdateEvent { delta_time: Duration },
+    TerminateEvent,
     WindowEvent(WindowEvent),
     InputEvent(InputEvent),
     NetworkEvent(NetworkEvent),
@@ -82,11 +82,11 @@ impl Engine {
                     let now = Instant::now();
                     let delta_time = now - prev_now;
                     prev_now = now;
-                    event_handler(&mut self, Event::Update(delta_time));
+                    event_handler(&mut self, Event::UpdateEvent { delta_time });
                 },
                 WinitEvent::LoopDestroyed => {
                     info!("Terminating game");
-                    event_handler(&mut self, Event::Terminate); // terminate event
+                    event_handler(&mut self, Event::TerminateEvent); // terminate event
                 },
                 _ => (),
             }
