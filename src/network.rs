@@ -7,6 +7,7 @@ use laminar::SocketEvent;
 
 use crate::Result;
 
+#[derive(Clone, Debug)]
 pub enum NetworkEvent {
     Message(Packet),
     Connect(SocketAddr),
@@ -14,6 +15,7 @@ pub enum NetworkEvent {
     Disconnect(SocketAddr),
 }
 
+#[derive(Debug)]
 pub struct Socket {
     sender: Sender<Packet>,
     stop_signal: Arc<AtomicBool>,
@@ -32,7 +34,7 @@ impl Drop for Socket {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Network {
     socket_thread: Option<JoinHandle<()>>,
     receiver: Option<Receiver<SocketEvent>>,

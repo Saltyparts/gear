@@ -6,14 +6,14 @@ async fn main() {
 
     Engine::new().await.run(move |engine, event| {
         match event {
-            Event::Update(delta_time) => {
+            Event::Update(_delta_time) => {
                 engine.renderer
                     .set_clear_color([0.03, 0.03, 0.03, 1.0])
                     .submit();
             },
             Event::Terminate => (),
             Event::WindowEvent(event) => match event {
-                WindowEvent::Resized(size) => {},
+                WindowEvent::Resized(_size) => {},
             },
             _ => (),
         }

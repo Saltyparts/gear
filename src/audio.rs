@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use log::info;
 use rodio::{OutputStream, OutputStreamHandle};
 
@@ -20,7 +22,7 @@ impl AudioSource {
 }
 
 pub struct Audio {
-    stream: OutputStream,
+    _stream: OutputStream,
     stream_handle: OutputStreamHandle,
 }
 
@@ -30,7 +32,7 @@ impl Audio {
         let (stream, stream_handle) = OutputStream::try_default().unwrap();
 
         Audio {
-            stream,
+            _stream: stream,
             stream_handle,
         }
     }
@@ -39,5 +41,13 @@ impl Audio {
         AudioSource {
             sink: rodio::Sink::try_new(&self.stream_handle).unwrap()
         }
+    }
+}
+
+impl Debug for Audio {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Audio")
+            .field("_stream", &"stream")
+            .field("stream_handle", &"stream_handle").finish()
     }
 }

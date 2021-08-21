@@ -4,10 +4,12 @@ use winit::dpi::{PhysicalPosition, PhysicalSize};
 #[cfg(target_os = "windows")]
 use winit::platform::windows::WindowBuilderExtWindows;
 
+#[derive(Clone, Copy, Debug)]
 pub enum WindowEvent {
     Resized([u32; 2]),
 }
 
+#[derive(Debug)]
 pub struct Window {
     window: Option<winit::window::Window>,
 }
@@ -37,14 +39,14 @@ impl Window {
 
     pub fn set_cursor_grab(&self, grab: bool) -> &Self {
         if let Some(window) = &self.window {
-            window.set_cursor_grab(grab);
+            window.set_cursor_grab(grab).unwrap();
         }
         self
     }
 
     pub fn set_cursor_position(&self, position: [u32; 2]) -> &Self {
         if let Some(window) = &self.window {
-            window.set_cursor_position(PhysicalPosition::new(position[0] as f64, position[1] as f64));
+            window.set_cursor_position(PhysicalPosition::new(position[0] as f64, position[1] as f64)).unwrap();
         }
         self
     }

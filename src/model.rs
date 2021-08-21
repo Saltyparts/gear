@@ -2,12 +2,9 @@
 use std::path::Path;
 
 use bytemuck::{Pod, Zeroable};
-use log::error;
-use tobj::LoadError;
 use tobj::LoadOptions;
 
 use crate::Loadable;
-use crate::result::GearError;
 use crate::result::Result;
 
 #[repr(C)]

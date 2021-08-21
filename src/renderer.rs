@@ -2,7 +2,7 @@ use std::{borrow::Cow, ops::Range, sync::Weak};
 
 use bytemuck::Zeroable;
 use log::{error, info};
-use nalgebra::{Isometry, Isometry3, Matrix4, Perspective3, Point3, Translation, Translation3, UnitQuaternion, Vector3, zero};
+use nalgebra::{Isometry3, Matrix4, Point3, Translation3, UnitQuaternion};
 use wgpu::{
     Adapter,
     BIND_BUFFER_ALIGNMENT,
@@ -88,20 +88,22 @@ const TEXTURE_FORMAT: TextureFormat = TextureFormat::Bgra8UnormSrgb;
 const DEPTH_TEXTURE_FORMAT: TextureFormat = TextureFormat::Depth32Float;
 
 #[repr(C, align(256))]
-#[derive(Copy, Clone, Zeroable)]
+#[derive(Copy, Clone, Debug, Zeroable)]
 struct Uniforms {
     mvp: [[f32; 4]; 4]
 }
 
+#[derive(Debug)]
 struct DrawCall {
     base_vertex: i32,
     indices: Range<u32>,
 }
 
+#[derive(Debug)]
 pub struct Renderer {
-    instance: Instance,
+    _instance: Instance,
     surface: Surface,
-    adapter: Adapter,
+    _adapter: Adapter,
     device: Device,
     queue: Queue,
     swap_chain_descriptor: SwapChainDescriptor,
@@ -110,19 +112,19 @@ pub struct Renderer {
     vertex_buffer: Buffer,
     index_buffer: Buffer,
     uniform_buffer: Buffer,
-    uniform_bind_group_layout: BindGroupLayout,
+    _uniform_bind_group_layout: BindGroupLayout,
     uniform_bind_group: BindGroup,
 
     depth_texture: Texture,
     depth_texture_view: TextureView,
-    shader_module: ShaderModule,
-    pipeline_layout: PipelineLayout,
+    _shader_module: ShaderModule,
+    _pipeline_layout: PipelineLayout,
     pipeline: RenderPipeline,
 
     clear_color: [f64; 4],
     view: Isometry3<f32>,
     projection: Matrix4<f32>,
-    bound_texture: Option<Weak<crate::Texture>>,
+    _bound_texture: Option<Weak<crate::Texture>>,
     draw_calls: Vec<Vec<DrawCall>>,
     vertex_data: Vec<Vertex>,
     index_data: Vec<u32>,
@@ -282,9 +284,9 @@ impl Renderer {
         });
 
         Some(Renderer {
-            instance,
+            _instance: instance,
             surface,
-            adapter,
+            _adapter: adapter,
             device,
             queue,
             swap_chain_descriptor,
@@ -293,19 +295,19 @@ impl Renderer {
             vertex_buffer,
             index_buffer,
             uniform_buffer,
-            uniform_bind_group_layout,
+            _uniform_bind_group_layout: uniform_bind_group_layout,
             uniform_bind_group,
 
             depth_texture,
             depth_texture_view,
-            shader_module,
-            pipeline_layout,
+            _shader_module: shader_module,
+            _pipeline_layout: pipeline_layout,
             pipeline,
 
             clear_color: [0., 0., 0., 1.],
             view: Isometry3::identity(),
             projection: Matrix4::identity(),
-            bound_texture: None,
+            _bound_texture: None,
             vertex_data: vec![],
             index_data: vec![],
             uniform_data: vec![],
@@ -338,7 +340,7 @@ impl Renderer {
         self
     }
 
-    pub fn bind_texture(&mut self, texture: &crate::Texture) -> &mut Self {
+    pub fn bind_texture(&mut self, _texture: &crate::Texture) -> &mut Self {
         self
     }
 

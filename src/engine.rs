@@ -9,6 +9,7 @@ use crate::network::{Network, NetworkEvent};
 use crate::renderer::Renderer;
 use crate::window::{Window, WindowEvent};
 
+#[derive(Clone, Debug)]
 pub enum Event {
     Update(Duration), // delta_time in nanoseconds
     Terminate,
@@ -17,6 +18,7 @@ pub enum Event {
     NetworkEvent(NetworkEvent),
 }
 
+#[derive(Debug)]
 pub struct Engine {
     event_loop: Option<EventLoop<()>>,
     pub window: Window,
