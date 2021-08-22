@@ -1,3 +1,5 @@
+// Copyright 2021 Chay Nabors.
+
 use std::time::Duration;
 use std::time::Instant;
 
@@ -65,6 +67,10 @@ impl Engine {
                             size = [new_size.width, new_size.height];
                             self.renderer.resize(size);
                             event_handler(&mut self, Event::WindowEvent(WindowEvent::Resized(size)));
+                        },
+                        WinitWindowEvent::Moved(new_position) => {
+                            let position = [new_position.x, new_position.y];
+                            event_handler(&mut self, Event::WindowEvent(WindowEvent::Moved(position)));
                         },
                         WinitWindowEvent::KeyboardInput { input, .. } => {
                             event_handler(&mut self, Event::InputEvent(InputEvent::KeyboardEvent(input)))

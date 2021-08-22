@@ -1,3 +1,5 @@
+// Copyright 2021 Chay Nabors.
+
 use std::path::Path;
 
 use crate::result::Result;

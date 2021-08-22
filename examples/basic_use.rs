@@ -1,3 +1,5 @@
+// Copyright 2021 Chay Nabors.
+
 use gear::event::Event;
 use gear::event::WindowEvent;
 use gear::Engine;
@@ -13,6 +15,7 @@ async fn main() {
         Event::TerminateEvent => (),
         Event::WindowEvent(event) => match event {
             WindowEvent::Resized(_size) => {},
+            _ => (),
         },
         _ => (),
     });

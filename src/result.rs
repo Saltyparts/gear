@@ -1,3 +1,5 @@
+// Copyright 2021 Chay Nabors.
+
 use tobj::LoadError;
 
 #[derive(Debug)]

@@ -1,3 +1,5 @@
+// Copyright 2021 Chay Nabors.
+
 pub use winit::event::ElementState as KeyState;
 pub use winit::event::KeyboardInput as KeyboardEvent;
 pub use winit::event::VirtualKeyCode as KeyCode;

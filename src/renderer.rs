@@ -1,3 +1,5 @@
+// Copyright 2021 Chay Nabors.
+
 use std::borrow::Cow;
 use std::ops::Range;
 use std::sync::Weak;

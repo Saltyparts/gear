@@ -1,3 +1,5 @@
+// Copyright 2021 Chay Nabors.
+
 use std::convert::AsRef;
 use std::fs::File;
 use std::io::Read;

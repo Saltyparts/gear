@@ -1,3 +1,5 @@
+// Copyright 2021 Chay Nabors.
+
 mod audio;
 mod engine;
 mod input;
@@ -18,6 +20,8 @@ pub use input::KeyCode;
 pub use input::KeyState;
 pub use loadable::Loadable;
 pub use model::Model;
+pub use nalgebra as math;
+pub use nalgebra_glm as math_ext;
 pub use network::Network;
 pub use network::NetworkConfig;
 pub use network::Packet;

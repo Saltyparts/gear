@@ -1,3 +1,5 @@
+// Copyright 2021 Chay Nabors.
+
 use log::info;
 use winit::dpi::PhysicalPosition;
 use winit::dpi::PhysicalSize;
@@ -7,6 +9,7 @@ use winit::platform::windows::WindowBuilderExtWindows;
 #[derive(Clone, Copy, Debug)]
 pub enum WindowEvent {
     Resized([u32; 2]),
+    Moved([i32; 2]),
 }
 
 #[derive(Debug)]

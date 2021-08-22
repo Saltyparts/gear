@@ -1,3 +1,5 @@
+// Copyright 2021 Chay Nabors.
+
 use std::net::SocketAddr;
 use std::net::ToSocketAddrs;
 use std::sync::atomic::AtomicBool;
