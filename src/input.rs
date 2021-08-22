@@ -1,11 +1,9 @@
+pub use winit::event::ElementState as KeyState;
 pub use winit::event::KeyboardInput as KeyboardEvent;
 pub use winit::event::VirtualKeyCode as KeyCode;
-pub use winit::event::ElementState as KeyState;
 
 #[derive(Clone, Copy, Debug)]
-pub enum JoystickEvent {
-
-}
+pub enum JoystickEvent {}
 
 #[derive(Clone, Copy, Debug)]
 pub enum MouseEvent {

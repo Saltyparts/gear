@@ -30,8 +30,8 @@ pub use window::Window;
 
 pub mod event {
     pub use crate::engine::Event;
-    pub use crate::window::WindowEvent;
     pub use crate::input::InputEvent;
     pub use crate::input::MouseEvent;
     pub use crate::network::NetworkEvent;
+    pub use crate::window::WindowEvent;
 }

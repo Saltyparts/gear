@@ -1,13 +1,21 @@
-use std::time::{Duration, Instant};
+use std::time::Duration;
+use std::time::Instant;
 
 use log::info;
-use winit::{event::{Event as WinitEvent, WindowEvent as WinitWindowEvent}, event_loop::{ControlFlow, EventLoop}};
+use winit::event::Event as WinitEvent;
+use winit::event::WindowEvent as WinitWindowEvent;
+use winit::event_loop::ControlFlow;
+use winit::event_loop::EventLoop;
 
-use crate::{audio::Audio, input::MouseEvent};
-use crate::input::{Input, InputEvent};
-use crate::network::{Network, NetworkEvent};
+use crate::audio::Audio;
+use crate::input::Input;
+use crate::input::InputEvent;
+use crate::input::MouseEvent;
+use crate::network::Network;
+use crate::network::NetworkEvent;
 use crate::renderer::Renderer;
-use crate::window::{Window, WindowEvent};
+use crate::window::Window;
+use crate::window::WindowEvent;
 
 #[derive(Clone, Debug)]
 pub enum Event {
@@ -37,14 +45,7 @@ impl Engine {
         let audio = Audio::new();
         let network = Network::new();
 
-        Engine {
-            event_loop: Some(event_loop),
-            window,
-            input,
-            renderer,
-            audio,
-            network,
-        }
+        Engine { event_loop: Some(event_loop), window, input, renderer, audio, network }
     }
 
     pub fn run<F: 'static + FnMut(&mut Engine, Event)>(mut self, mut event_handler: F) {
@@ -65,9 +66,17 @@ impl Engine {
                             self.renderer.resize(size);
                             event_handler(&mut self, Event::WindowEvent(WindowEvent::Resized(size)));
                         },
-                        WinitWindowEvent::KeyboardInput { input, .. } => event_handler(&mut self, Event::InputEvent(InputEvent::KeyboardEvent(input))),
+                        WinitWindowEvent::KeyboardInput { input, .. } => {
+                            event_handler(&mut self, Event::InputEvent(InputEvent::KeyboardEvent(input)))
+                        },
                         WinitWindowEvent::CursorMoved { position, .. } => {
-                            event_handler(&mut self, Event::InputEvent(InputEvent::MouseEvent(MouseEvent::CursorMoved([position.x - size[0] as f64 / 2., position.y - size[1] as f64 / 2.]))));
+                            event_handler(
+                                &mut self,
+                                Event::InputEvent(InputEvent::MouseEvent(MouseEvent::CursorMoved([
+                                    position.x - size[0] as f64 / 2.,
+                                    position.y - size[1] as f64 / 2.,
+                                ]))),
+                            );
                         },
                         WinitWindowEvent::Destroyed => *control_flow = ControlFlow::Exit,
                         _ => (),

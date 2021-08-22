@@ -13,20 +13,19 @@ impl From<LoadError> for GearError {
     fn from(e: LoadError) -> Self {
         match e {
             LoadError::OpenFileFailed => GearError::OpenFileFailed,
-            LoadError::ReadError |
-            LoadError::UnrecognizedCharacter |
-            LoadError::PositionParseError |
-            LoadError::NormalParseError |
-            LoadError::TexcoordParseError |
-            LoadError::FaceParseError |
-            LoadError::MaterialParseError |
-            LoadError::InvalidObjectName |
-            LoadError::FaceVertexOutOfBounds |
-            LoadError::FaceTexCoordOutOfBounds |
-            LoadError::FaceNormalOutOfBounds |
-            LoadError::FaceColorOutOfBounds => GearError::ParseFileFailed,
-            LoadError::InvalidLoadOptionConfig |
-            LoadError::GenericFailure => GearError::Unknown,
+            LoadError::ReadError
+            | LoadError::UnrecognizedCharacter
+            | LoadError::PositionParseError
+            | LoadError::NormalParseError
+            | LoadError::TexcoordParseError
+            | LoadError::FaceParseError
+            | LoadError::MaterialParseError
+            | LoadError::InvalidObjectName
+            | LoadError::FaceVertexOutOfBounds
+            | LoadError::FaceTexCoordOutOfBounds
+            | LoadError::FaceNormalOutOfBounds
+            | LoadError::FaceColorOutOfBounds => GearError::ParseFileFailed,
+            LoadError::InvalidLoadOptionConfig | LoadError::GenericFailure => GearError::Unknown,
         }
     }
 }

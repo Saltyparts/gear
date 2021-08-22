@@ -1,6 +1,6 @@
 use log::info;
-use winit::dpi::{PhysicalPosition, PhysicalSize};
-
+use winit::dpi::PhysicalPosition;
+use winit::dpi::PhysicalSize;
 #[cfg(target_os = "windows")]
 use winit::platform::windows::WindowBuilderExtWindows;
 
@@ -18,9 +18,7 @@ impl Window {
     pub(crate) fn new(event_loop: &winit::event_loop::EventLoop<()>) -> Self {
         info!("Initializing windowing backend");
 
-        Self {
-            window: Some(create_window(event_loop)),
-        }
+        Self { window: Some(create_window(event_loop)) }
     }
 
     pub fn rename(&self, name: &str) -> &Self {
@@ -60,7 +58,7 @@ impl Window {
     pub fn size(&self) -> [u32; 2] {
         if let Some(window) = &self.window {
             let size = window.inner_size();
-            return [size.width, size.height]
+            return [size.width, size.height];
         }
 
         [0, 0]
@@ -77,12 +75,11 @@ unsafe impl raw_window_handle::HasRawWindowHandle for Window {
     }
 }
 
-// This is a workaround since rodio and winit can't run in parallel when drag and drop is enabled on windows
+// This is a workaround since rodio and winit can't run in parallel when drag
+// and drop is enabled on windows
 #[cfg(target_os = "windows")]
 fn create_window(event_loop: &winit::event_loop::EventLoop<()>) -> winit::window::Window {
-    winit::window::WindowBuilder::new()
-        .with_drag_and_drop(false)
-        .build(event_loop).unwrap()
+    winit::window::WindowBuilder::new().with_drag_and_drop(false).build(event_loop).unwrap()
 }
 
 #[cfg(not(target_os = "windows"))]

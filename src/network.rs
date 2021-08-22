@@ -1,8 +1,19 @@
-use std::{net::{SocketAddr, ToSocketAddrs}, sync::{Arc, atomic::{AtomicBool, Ordering}}, thread::{self, JoinHandle, sleep}, time::{Duration, Instant}};
+use std::net::SocketAddr;
+use std::net::ToSocketAddrs;
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
+use std::sync::Arc;
+use std::thread::sleep;
+use std::thread::JoinHandle;
+use std::thread::{self,};
+use std::time::Duration;
+use std::time::Instant;
 
-pub use laminar::{Config as NetworkConfig, Packet};
-
-use crossbeam::channel::{Receiver, Sender, TryRecvError};
+use crossbeam::channel::Receiver;
+use crossbeam::channel::Sender;
+use crossbeam::channel::TryRecvError;
+pub use laminar::Config as NetworkConfig;
+pub use laminar::Packet;
 use laminar::SocketEvent;
 
 use crate::Result;
@@ -49,12 +60,14 @@ impl Network {
         if let Some(receiver) = &self.receiver {
             loop {
                 match receiver.try_recv() {
-                    Ok(message) => return Some(match message {
-                        SocketEvent::Packet(packet) => NetworkEvent::Message(packet),
-                        SocketEvent::Connect(address) => NetworkEvent::Connect(address),
-                        SocketEvent::Timeout(address) => NetworkEvent::Timeout(address),
-                        SocketEvent::Disconnect(address) => NetworkEvent::Disconnect(address),
-                    }),
+                    Ok(message) => {
+                        return Some(match message {
+                            SocketEvent::Packet(packet) => NetworkEvent::Message(packet),
+                            SocketEvent::Connect(address) => NetworkEvent::Connect(address),
+                            SocketEvent::Timeout(address) => NetworkEvent::Timeout(address),
+                            SocketEvent::Disconnect(address) => NetworkEvent::Disconnect(address),
+                        })
+                    },
                     Err(e) => match e {
                         TryRecvError::Empty => break,
                         TryRecvError::Disconnected => {
@@ -81,19 +94,16 @@ impl Network {
         let stop_signal = Arc::new(AtomicBool::new(false));
         let stop = stop_signal.clone();
 
-        let socket_thread = thread::spawn(move ||
+        let socket_thread = thread::spawn(move || {
             while !stop.load(Ordering::Relaxed) {
                 socket.manual_poll(Instant::now());
                 sleep(Duration::from_millis(1));
             }
-        );
+        });
 
         self.socket_thread = Some(socket_thread);
         self.receiver = Some(receiver);
 
-        Ok(Socket {
-            sender,
-            stop_signal,
-        })
+        Ok(Socket { sender, stop_signal })
     }
 }

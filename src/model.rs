@@ -1,11 +1,11 @@
-
 use std::path::Path;
 
-use bytemuck::{Pod, Zeroable};
+use bytemuck::Pod;
+use bytemuck::Zeroable;
 use tobj::LoadOptions;
 
-use crate::Loadable;
 use crate::result::Result;
+use crate::Loadable;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
@@ -27,11 +27,8 @@ pub struct Model {
 
 impl Loadable for Model {
     fn load<P: AsRef<Path>>(path: P) -> Result<Model> {
-        let (models, _materials) = tobj::load_obj(path.as_ref(), &LoadOptions {
-            triangulate: true,
-            single_index: true,
-            ..Default::default()
-        })?;
+        let (models, _materials) =
+            tobj::load_obj(path.as_ref(), &LoadOptions { triangulate: true, single_index: true, ..Default::default() })?;
 
         let mut meshes = vec![];
         for model in models {
@@ -43,26 +40,14 @@ impl Loadable for Model {
                         model.mesh.positions[i * 3 + 1],
                         model.mesh.positions[i * 3 + 2],
                     ],
-                    tex_coords: [
-                        model.mesh.texcoords[i * 2],
-                        model.mesh.texcoords[i * 2 + 1],
-                    ],
-                    normal: [
-                        model.mesh.normals[i * 3],
-                        model.mesh.normals[i * 3 + 1],
-                        model.mesh.normals[i * 3 + 2],
-                    ],
+                    tex_coords: [model.mesh.texcoords[i * 2], model.mesh.texcoords[i * 2 + 1]],
+                    normal: [model.mesh.normals[i * 3], model.mesh.normals[i * 3 + 1], model.mesh.normals[i * 3 + 2]],
                 });
             }
 
-            meshes.push(Mesh {
-                vertices,
-                indices: model.mesh.indices,
-            });
+            meshes.push(Mesh { vertices, indices: model.mesh.indices });
         }
 
-        Ok(Model {
-            meshes,
-        })
+        Ok(Model { meshes })
     }
 }

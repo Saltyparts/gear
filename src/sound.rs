@@ -1,6 +1,7 @@
-use std::fs::File;
 use std::convert::AsRef;
-use std::io::{self, Read};
+use std::fs::File;
+use std::io::Read;
+use std::io::{self,};
 use std::path::Path;
 use std::sync::Arc;
 
@@ -19,7 +20,10 @@ impl Sound {
 }
 
 impl Loadable for Sound {
-    fn load<P: AsRef<Path>>(path: P) -> crate::Result<Self> where Self: Sized {
+    fn load<P: AsRef<Path>>(path: P) -> crate::Result<Self>
+    where
+        Self: Sized,
+    {
         let mut buf = vec![];
         let mut file = File::open(path)?;
         file.read_to_end(&mut buf)?;

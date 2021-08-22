@@ -1,85 +1,91 @@
-use std::{borrow::Cow, ops::Range, sync::Weak};
+use std::borrow::Cow;
+use std::ops::Range;
+use std::sync::Weak;
 
 use bytemuck::Zeroable;
-use log::{error, info};
-use nalgebra::{Isometry3, Matrix4, Point3, Translation3, UnitQuaternion};
-use wgpu::{
-    Adapter,
-    BIND_BUFFER_ALIGNMENT,
-    BackendBit,
-    BindGroup,
-    BindGroupDescriptor,
-    BindGroupEntry,
-    BindGroupLayout,
-    BindGroupLayoutDescriptor,
-    BindGroupLayoutEntry,
-    BindingResource,
-    BindingType,
-    BlendState,
-    Buffer,
-    BufferAddress,
-    BufferBinding,
-    BufferBindingType,
-    BufferDescriptor,
-    BufferUsage,
-    Color,
-    ColorTargetState,
-    ColorWrite,
-    CommandEncoderDescriptor,
-    CompareFunction,
-    DepthBiasState,
-    DepthStencilState,
-    Device,
-    DeviceDescriptor,
-    DynamicOffset,
-    Extent3d,
-    Face,
-    Features,
-    FragmentState,
-    FrontFace,
-    IndexFormat,
-    InputStepMode,
-    Instance,
-    Limits,
-    LoadOp,
-    MultisampleState,
-    Operations,
-    PipelineLayout,
-    PipelineLayoutDescriptor,
-    PolygonMode,
-    PowerPreference,
-    PresentMode,
-    PrimitiveState,
-    PrimitiveTopology,
-    Queue,
-    RenderPassColorAttachment,
-    RenderPassDepthStencilAttachment,
-    RenderPassDescriptor,
-    RenderPipeline,
-    RenderPipelineDescriptor,
-    RequestAdapterOptions,
-    ShaderFlags,
-    ShaderModule,
-    ShaderModuleDescriptor,
-    ShaderSource,
-    ShaderStage,
-    StencilState,
-    Surface,
-    SwapChain,
-    SwapChainDescriptor,
-    Texture,
-    TextureDescriptor,
-    TextureDimension,
-    TextureFormat,
-    TextureUsage,
-    TextureView,
-    TextureViewDescriptor,
-    VertexBufferLayout,
-    VertexState,
-    vertex_attr_array
-};
+use log::error;
+use log::info;
+use nalgebra::Isometry3;
+use nalgebra::Matrix4;
+use nalgebra::Point3;
+use nalgebra::Translation3;
+use nalgebra::UnitQuaternion;
+use wgpu::vertex_attr_array;
+use wgpu::Adapter;
+use wgpu::BackendBit;
+use wgpu::BindGroup;
+use wgpu::BindGroupDescriptor;
+use wgpu::BindGroupEntry;
+use wgpu::BindGroupLayout;
+use wgpu::BindGroupLayoutDescriptor;
+use wgpu::BindGroupLayoutEntry;
+use wgpu::BindingResource;
+use wgpu::BindingType;
+use wgpu::BlendState;
+use wgpu::Buffer;
+use wgpu::BufferAddress;
+use wgpu::BufferBinding;
+use wgpu::BufferBindingType;
+use wgpu::BufferDescriptor;
+use wgpu::BufferUsage;
+use wgpu::Color;
+use wgpu::ColorTargetState;
+use wgpu::ColorWrite;
+use wgpu::CommandEncoderDescriptor;
+use wgpu::CompareFunction;
+use wgpu::DepthBiasState;
+use wgpu::DepthStencilState;
+use wgpu::Device;
+use wgpu::DeviceDescriptor;
+use wgpu::DynamicOffset;
+use wgpu::Extent3d;
+use wgpu::Face;
+use wgpu::Features;
+use wgpu::FragmentState;
+use wgpu::FrontFace;
+use wgpu::IndexFormat;
+use wgpu::InputStepMode;
+use wgpu::Instance;
+use wgpu::Limits;
+use wgpu::LoadOp;
+use wgpu::MultisampleState;
+use wgpu::Operations;
+use wgpu::PipelineLayout;
+use wgpu::PipelineLayoutDescriptor;
+use wgpu::PolygonMode;
+use wgpu::PowerPreference;
+use wgpu::PresentMode;
+use wgpu::PrimitiveState;
+use wgpu::PrimitiveTopology;
+use wgpu::Queue;
+use wgpu::RenderPassColorAttachment;
+use wgpu::RenderPassDepthStencilAttachment;
+use wgpu::RenderPassDescriptor;
+use wgpu::RenderPipeline;
+use wgpu::RenderPipelineDescriptor;
+use wgpu::RequestAdapterOptions;
+use wgpu::ShaderFlags;
+use wgpu::ShaderModule;
+use wgpu::ShaderModuleDescriptor;
+use wgpu::ShaderSource;
+use wgpu::ShaderStage;
+use wgpu::StencilState;
+use wgpu::Surface;
+use wgpu::SwapChain;
+use wgpu::SwapChainDescriptor;
+use wgpu::Texture;
+use wgpu::TextureDescriptor;
+use wgpu::TextureDimension;
+use wgpu::TextureFormat;
+use wgpu::TextureUsage;
+use wgpu::TextureView;
+use wgpu::TextureViewDescriptor;
+use wgpu::VertexBufferLayout;
+use wgpu::VertexState;
+use wgpu::BIND_BUFFER_ALIGNMENT;
 
-use crate::{model::Vertex, Window};
+use crate::model::Vertex;
+use crate::Window;
 
 const VERTEX_BUFFER_SIZE: u64 = 32000000;
 const INDEX_BUFFER_SIZE: u64 = 32000000;
@@ -90,7 +96,7 @@ const DEPTH_TEXTURE_FORMAT: TextureFormat = TextureFormat::Depth32Float;
 #[repr(C, align(256))]
 #[derive(Copy, Clone, Debug, Zeroable)]
 struct Uniforms {
-    mvp: [[f32; 4]; 4]
+    mvp: [[f32; 4]; 4],
 }
 
 #[derive(Debug)]
@@ -108,7 +114,7 @@ pub struct Renderer {
     queue: Queue,
     swap_chain_descriptor: SwapChainDescriptor,
     swap_chain: SwapChain,
-    
+
     vertex_buffer: Buffer,
     index_buffer: Buffer,
     uniform_buffer: Buffer,
@@ -136,13 +142,16 @@ impl Renderer {
         info!("Initializing rendering backend");
 
         let instance = Instance::new(BackendBit::all());
-        
+
         let surface = unsafe { instance.create_surface(window) };
 
-        let adapter = match instance.request_adapter(&RequestAdapterOptions {
-            power_preference: PowerPreference::HighPerformance,
-            compatible_surface: Some(&surface),
-        }).await {
+        let adapter = match instance
+            .request_adapter(&RequestAdapterOptions {
+                power_preference: PowerPreference::HighPerformance,
+                compatible_surface: Some(&surface),
+            })
+            .await
+        {
             Some(adapter) => adapter,
             None => {
                 error!("Failed to find any suitable graphics adapter");
@@ -150,19 +159,18 @@ impl Renderer {
             },
         };
 
-        let (device, queue) = match adapter.request_device(
-            &DeviceDescriptor {
-                label: Some("device"),
-                features: Features::empty(),
-                limits: Limits::default(),
-            },
-            None,
-        ).await {
+        let (device, queue) = match adapter
+            .request_device(
+                &DeviceDescriptor { label: Some("device"), features: Features::empty(), limits: Limits::default() },
+                None,
+            )
+            .await
+        {
             Ok(dq) => dq,
             Err(e) => {
                 error!("Failed to acquire a graphics device: {}", e);
                 return None;
-            }
+            },
         };
 
         let window_size = window.size();
@@ -192,32 +200,28 @@ impl Renderer {
 
         let uniform_bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
             label: None,
-            entries: &[
-                BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: ShaderStage::VERTEX,
-                    ty: BindingType::Buffer {
-                        ty: BufferBindingType::Uniform,
-                        has_dynamic_offset: true,
-                        min_binding_size: wgpu::BufferSize::new(std::mem::size_of::<Uniforms>() as _),
-                    },
-                    count: None
+            entries: &[BindGroupLayoutEntry {
+                binding: 0,
+                visibility: ShaderStage::VERTEX,
+                ty: BindingType::Buffer {
+                    ty: BufferBindingType::Uniform,
+                    has_dynamic_offset: true,
+                    min_binding_size: wgpu::BufferSize::new(std::mem::size_of::<Uniforms>() as _),
                 },
-            ]
+                count: None,
+            }],
         });
 
         let uniform_bind_group = device.create_bind_group(&BindGroupDescriptor {
             layout: &uniform_bind_group_layout,
-            entries: &[
-                BindGroupEntry {
-                    binding: 0,
-                    resource: BindingResource::Buffer(BufferBinding {
-                        buffer: &uniform_buffer,
-                        offset: 0,
-                        size: wgpu::BufferSize::new(std::mem::size_of::<Uniforms>() as _),
-                    },
-                )},
-            ],
+            entries: &[BindGroupEntry {
+                binding: 0,
+                resource: BindingResource::Buffer(BufferBinding {
+                    buffer: &uniform_buffer,
+                    offset: 0,
+                    size: wgpu::BufferSize::new(std::mem::size_of::<Uniforms>() as _),
+                }),
+            }],
             label: None,
         });
 
@@ -232,7 +236,7 @@ impl Renderer {
         let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
             label: None,
             bind_group_layouts: &[&uniform_bind_group_layout],
-            push_constant_ranges: &[]
+            push_constant_ranges: &[],
         });
 
         let pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
@@ -249,7 +253,7 @@ impl Renderer {
                         1 => Float32x2,
                         2 => Float32x3,
                     ],
-                }]
+                }],
             },
             primitive: PrimitiveState {
                 topology: PrimitiveTopology::TriangleList,
@@ -267,11 +271,7 @@ impl Renderer {
                 stencil: StencilState::default(),
                 bias: DepthBiasState::default(),
             }),
-            multisample: MultisampleState {
-                count: 1,
-                mask: !0,
-                alpha_to_coverage_enabled: false,
-            },
+            multisample: MultisampleState { count: 1, mask: !0, alpha_to_coverage_enabled: false },
             fragment: Some(FragmentState {
                 module: &shader_module,
                 entry_point: "main",
@@ -279,7 +279,7 @@ impl Renderer {
                     format: swap_chain_descriptor.format,
                     blend: Some(BlendState::REPLACE),
                     write_mask: ColorWrite::ALL,
-                }]
+                }],
             }),
         });
 
@@ -358,9 +358,7 @@ impl Renderer {
 
         let model = Translation3::from(position) * rotation;
         let mvp = self.projection * (self.view * model).to_homogeneous();
-        self.uniform_data.push(Uniforms {
-            mvp: mvp.into(),
-        });
+        self.uniform_data.push(Uniforms { mvp: mvp.into() });
 
         self
     }
@@ -375,9 +373,9 @@ impl Renderer {
                     Err(e) => {
                         error!("Failed to acquire swapchain frame: {}", e);
                         return ();
-                    }
+                    },
                 }
-            }
+            },
         };
 
         let render_texture = frame.output;
@@ -411,10 +409,7 @@ impl Renderer {
                 }],
                 depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
                     view: &self.depth_texture_view,
-                    depth_ops: Some(Operations {
-                        load: LoadOp::Clear(0.0),
-                        store: true,
-                    }),
+                    depth_ops: Some(Operations { load: LoadOp::Clear(0.0), store: true }),
                     stencil_ops: None,
                 }),
             });
@@ -427,7 +422,11 @@ impl Renderer {
                     let offset = (i as DynamicOffset) * (BIND_BUFFER_ALIGNMENT as DynamicOffset);
                     render_pass.set_bind_group(0, &self.uniform_bind_group, &[offset]);
                     for k in 0..self.draw_calls[i].len() {
-                        render_pass.draw_indexed(self.draw_calls[i][k].indices.clone(), self.draw_calls[i][k].base_vertex, 0..1);
+                        render_pass.draw_indexed(
+                            self.draw_calls[i][k].indices.clone(),
+                            self.draw_calls[i][k].base_vertex,
+                            0..1,
+                        );
                     }
                 }
             }

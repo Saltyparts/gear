@@ -1,7 +1,8 @@
 use std::fmt::Debug;
 
 use log::info;
-use rodio::{OutputStream, OutputStreamHandle};
+use rodio::OutputStream;
+use rodio::OutputStreamHandle;
 
 use crate::Sound;
 
@@ -31,23 +32,16 @@ impl Audio {
         info!("Initializing audio backend");
         let (stream, stream_handle) = OutputStream::try_default().unwrap();
 
-        Audio {
-            _stream: stream,
-            stream_handle,
-        }
+        Audio { _stream: stream, stream_handle }
     }
 
     pub fn create_audio_source(&self) -> AudioSource {
-        AudioSource {
-            sink: rodio::Sink::try_new(&self.stream_handle).unwrap()
-        }
+        AudioSource { sink: rodio::Sink::try_new(&self.stream_handle).unwrap() }
     }
 }
 
 impl Debug for Audio {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Audio")
-            .field("_stream", &"stream")
-            .field("stream_handle", &"stream_handle").finish()
+        f.debug_struct("Audio").field("_stream", &"stream").field("stream_handle", &"stream_handle").finish()
     }
 }
